@@ -1,0 +1,16 @@
+{
+  "object": {
+    "pins": [
+      {
+        "package": "AXSwift",
+        "repositoryURL": "https://github.com/tmandry/AXSwift",
+        "state": {
+          "branch": "main",
+          "revision": "e18a18453d135ad45809a384ee5139e05ea52def",
+          "version": null
+        }
+      }
+    ]
+  },
+  "version": 1
+}
