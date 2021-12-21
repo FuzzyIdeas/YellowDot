@@ -6,7 +6,16 @@
 //
 
 import AXSwift
+import Combine
+import Defaults
 import SwiftUI
+
+extension Defaults.Keys {
+    static let hideMenubarIcon = Key<Bool>("hideMenubarIcon", default: false)
+    static let paused = Key<Bool>("paused", default: false)
+    static let orange = Key<Bool>("orange", default: false)
+    static let launchCount = Key<Int>("launchCount", default: 0)
+}
 
 // MARK: - AXWindow
 
@@ -85,6 +94,7 @@ func acquirePrivileges() {
     Timer.scheduledTimer(withTimeInterval: 2, repeats: true) { timer in
         if AXIsProcessTrusted() {
             timer.invalidate()
+            AppDelegate.instance.statusBar?.showPopover(AppDelegate.instance)
         }
     }
 }
@@ -101,8 +111,11 @@ extension NSRunningApplication {
     }
 }
 
-func hideDot() {
-    var newPosition = CGPoint(x: -999_999, y: -999_999)
+let OFF_SCREEN_POSITION = CGPoint(x: -999_999, y: -999_999)
+var oldDotPosition = OFF_SCREEN_POSITION
+
+func moveDot(offScreen: Bool = true) {
+    var newPosition = offScreen ? OFF_SCREEN_POSITION : oldDotPosition
     guard let positionValue = AXValueCreate(.cgPoint, &newPosition),
           let controlCenter = NSRunningApplication.runningApplications(withBundleIdentifier: "com.apple.controlcenter").first,
           let windows = controlCenter.windows()
@@ -112,6 +125,9 @@ func hideDot() {
 
     for window in windows {
         if window.size.width == window.size.height {
+            if oldDotPosition == OFF_SCREEN_POSITION {
+                oldDotPosition = window.frame.origin
+            }
             AXUIElementSetAttributeValue(window.element.element, kAXPositionAttribute as CFString, positionValue)
         }
     }
@@ -120,11 +136,57 @@ func hideDot() {
 // MARK: - AppDelegate
 
 class AppDelegate: NSObject, NSApplicationDelegate {
+    private(set) static var instance: AppDelegate!
+
+    var statusBar: StatusBarController?
+    let popover = NSPopover()
+    var application = NSApplication.shared
+    var observers: Set<AnyCancellable> = []
+
+    func initMenubar() {
+        let contentView = ContentView()
+        let view = HostingView(rootView: contentView)
+
+        popover.contentViewController = MainViewController()
+        popover.contentViewController?.view = view
+        popover.contentSize = NSSize(width: FULL_WINDOW_WIDTH, height: 300)
+        popover.animates = false
+
+        statusBar = StatusBarController(popover, visible: !Defaults[.hideMenubarIcon])
+        Defaults.publisher(.hideMenubarIcon).sink { [self] hidden in
+            statusBar?.statusItem.isVisible = !hidden.newValue
+            statusBar?.statusItem.button?.image = hidden.newValue ? nil : NSImage(named: "MenubarIcon")
+            if let window = popover.contentViewController?.view.window {
+                window.isMovableByWindowBackground = hidden.newValue
+                statusBar?.showPopover(self)
+            }
+        }.store(in: &observers)
+    }
+
+    func application(_ application: NSApplication, open urls: [URL]) {
+        statusBar?.showPopover(self)
+    }
+
+    func applicationDidBecomeActive(_ notification: Notification) {
+        statusBar?.showPopover(self)
+    }
+
     func applicationDidFinishLaunching(_ notification: Notification) {
-        acquirePrivileges()
+        AppDelegate.instance = self
+        initMenubar()
+        Defaults[.launchCount] += 1
+        #if !DEBUG
+            acquirePrivileges()
+        #endif
+
         Timer.scheduledTimer(withTimeInterval: 1, repeats: true) { _ in
-            hideDot()
+            guard !Defaults[.paused] else { return }
+            moveDot(offScreen: true)
         }
+
+        Defaults.publisher(.paused).sink { paused in
+            moveDot(offScreen: !paused.newValue)
+        }.store(in: &observers)
     }
 }
 
@@ -138,11 +200,17 @@ struct YellowDotApp: App {
 
     // MARK: Internal
 
+    @Default(.hideMenubarIcon) var hideMenubarIcon
+
     @NSApplicationDelegateAdaptor(AppDelegate.self) var appDelegate
 
     var body: some Scene {
         Settings {
-            EmptyView()
+            if hideMenubarIcon {
+                ContentView()
+            } else {
+                EmptyView()
+            }
         }
     }
 }
