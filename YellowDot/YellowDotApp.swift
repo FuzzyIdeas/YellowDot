@@ -14,6 +14,7 @@ extension Defaults.Keys {
     static let hideMenubarIcon = Key<Bool>("hideMenubarIcon", default: false)
     static let paused = Key<Bool>("paused", default: false)
     static let orange = Key<Bool>("orange", default: false)
+    static let faster = Key<Bool>("faster", default: false)
     static let launchCount = Key<Int>("launchCount", default: 0)
 }
 
@@ -116,14 +117,27 @@ var oldDotPosition = OFF_SCREEN_POSITION
 
 func moveDot(offScreen: Bool = true) {
     var newPosition = offScreen ? OFF_SCREEN_POSITION : oldDotPosition
-    guard let positionValue = AXValueCreate(.cgPoint, &newPosition),
-          let controlCenter = NSRunningApplication.runningApplications(withBundleIdentifier: "com.apple.controlcenter").first,
-          let windows = controlCenter.windows()
+    let controlCenters = NSRunningApplication.runningApplications(withBundleIdentifier: "com.apple.controlcenter")
+    let windows = controlCenters.compactMap { $0.windows() }.joined()
+    guard let positionValue = AXValueCreate(.cgPoint, &newPosition), !windows.isEmpty
     else {
+        #if DEBUG
+            print("Error in finding dot:")
+            print("positionValue: \(AXValueCreate(.cgPoint, &newPosition))")
+            print(
+                "com.apple.controlcenter: \(NSRunningApplication.runningApplications(withBundleIdentifier: "com.apple.controlcenter").first)"
+            )
+            print(
+                "controlcenter windows: \(NSRunningApplication.runningApplications(withBundleIdentifier: "com.apple.controlcenter").first?.windows())"
+            )
+        #endif
         return
     }
 
     for window in windows {
+        #if DEBUG
+            print(window)
+        #endif
         if window.size.width == window.size.height {
             if oldDotPosition == OFF_SCREEN_POSITION {
                 oldDotPosition = window.frame.origin
@@ -142,6 +156,8 @@ class AppDelegate: NSObject, NSApplicationDelegate {
     let popover = NSPopover()
     var application = NSApplication.shared
     var observers: Set<AnyCancellable> = []
+
+    var dotHider: Timer?
 
     func initMenubar() {
         let contentView = ContentView()
@@ -171,22 +187,32 @@ class AppDelegate: NSObject, NSApplicationDelegate {
         statusBar?.showPopover(self)
     }
 
+    func initDotHider(timeInterval: TimeInterval) {
+        dotHider?.invalidate()
+        dotHider = Timer.scheduledTimer(withTimeInterval: timeInterval, repeats: true) { _ in
+            guard !Defaults[.paused] else { return }
+            moveDot(offScreen: true)
+        }
+    }
+
     func applicationDidFinishLaunching(_ notification: Notification) {
         AppDelegate.instance = self
         initMenubar()
         Defaults[.launchCount] += 1
-        #if !DEBUG
-            acquirePrivileges()
-        #endif
+//        #if !DEBUG
+        acquirePrivileges()
+//        #endif
 
-        Timer.scheduledTimer(withTimeInterval: 1, repeats: true) { _ in
-            guard !Defaults[.paused] else { return }
-            moveDot(offScreen: true)
-        }
+        initDotHider(timeInterval: Defaults[.faster] ? 0.3 : 1)
 
         Defaults.publisher(.paused).sink { paused in
             moveDot(offScreen: !paused.newValue)
         }.store(in: &observers)
+        Defaults.publisher(.faster)
+            .debounce(for: .seconds(1), scheduler: RunLoop.main)
+            .sink { faster in
+                self.initDotHider(timeInterval: faster.newValue ? 0.3 : 1)
+            }.store(in: &observers)
     }
 }
 

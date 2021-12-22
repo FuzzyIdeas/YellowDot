@@ -134,6 +134,7 @@ struct ContentView: View {
     @ObservedObject var launchAtLogin = LaunchAtLogin.observable
     @Default(.hideMenubarIcon) var hideMenubarIcon
     @Default(.paused) var paused
+    @Default(.faster) var faster
     @Default(.orange) var orange
     @State var orangeOpacity: CGFloat = 0
 
@@ -145,6 +146,9 @@ struct ContentView: View {
             Text("Settings").font(.largeTitle).fontWeight(.black).padding(.bottom, 6)
             VStack(alignment: .leading, spacing: 5) {
                 Toggle("Hide menubar icon", isOn: $hideMenubarIcon)
+                    .toggleStyle(CheckboxToggleStyle(style: .circle))
+                    .foregroundColor(.primary)
+                Toggle("Hide the dot faster when it reappears", isOn: $faster)
                     .toggleStyle(CheckboxToggleStyle(style: .circle))
                     .foregroundColor(.primary)
                 Toggle("Launch at login", isOn: $launchAtLogin.isEnabled)
