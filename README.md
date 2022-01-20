@@ -4,7 +4,7 @@
 
 Inspired by [undot by s4y](https://github.com/s4y/undot)
 
-#### macOS 12.2 compatibility
+## macOS 12.2 compatibility
 
 Since macOS 12.2, the dot is no longer a simple window that can be moved away. 
 
