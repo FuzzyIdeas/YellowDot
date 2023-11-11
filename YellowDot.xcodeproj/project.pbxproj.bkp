@@ -7,18 +7,22 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
+		C702D9D7277234AC00F27B93 /* StatusBarController.swift in Sources */ = {isa = PBXBuildFile; fileRef = C702D9D6277234AC00F27B93 /* StatusBarController.swift */; };
+		C702D9DB2772399800F27B93 /* LaunchAtLogin in Frameworks */ = {isa = PBXBuildFile; productRef = C702D9DA2772399800F27B93 /* LaunchAtLogin */; };
 		C702D9E127723D4100F27B93 /* Defaults in Frameworks */ = {isa = PBXBuildFile; productRef = C702D9E027723D4100F27B93 /* Defaults */; };
-		C735DA002AFF7B4B001DCAA8 /* LaunchAtLogin in Frameworks */ = {isa = PBXBuildFile; productRef = C735D9FF2AFF7B4B001DCAA8 /* LaunchAtLogin */; };
 		C7CC6DBD2771B2D2002E2746 /* YellowDotApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = C7CC6DBC2771B2D2002E2746 /* YellowDotApp.swift */; };
+		C7CC6DBF2771B2D2002E2746 /* ContentView.swift in Sources */ = {isa = PBXBuildFile; fileRef = C7CC6DBE2771B2D2002E2746 /* ContentView.swift */; };
 		C7CC6DC12771B2D2002E2746 /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = C7CC6DC02771B2D2002E2746 /* Assets.xcassets */; };
 		C7CC6DC42771B2D2002E2746 /* Preview Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = C7CC6DC32771B2D2002E2746 /* Preview Assets.xcassets */; };
+		C7CC6DCD2771BFA8002E2746 /* AXSwift in Frameworks */ = {isa = PBXBuildFile; productRef = C7CC6DCC2771BFA8002E2746 /* AXSwift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
+		C702D9D6277234AC00F27B93 /* StatusBarController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = StatusBarController.swift; sourceTree = "<group>"; };
 		C702D9D8277235FA00F27B93 /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist; path = Info.plist; sourceTree = "<group>"; };
-		C7C0876C28E1D016005EA649 /* YellowDot-Bridging-Header.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = "YellowDot-Bridging-Header.h"; sourceTree = "<group>"; };
 		C7CC6DB92771B2D1002E2746 /* YellowDot.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = YellowDot.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		C7CC6DBC2771B2D2002E2746 /* YellowDotApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = YellowDotApp.swift; sourceTree = "<group>"; };
+		C7CC6DBE2771B2D2002E2746 /* ContentView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ContentView.swift; sourceTree = "<group>"; };
 		C7CC6DC02771B2D2002E2746 /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
 		C7CC6DC32771B2D2002E2746 /* Preview Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = "Preview Assets.xcassets"; sourceTree = "<group>"; };
 		C7CC6DC52771B2D2002E2746 /* YellowDot.entitlements */ = {isa = PBXFileReference; lastKnownFileType = text.plist.entitlements; path = YellowDot.entitlements; sourceTree = "<group>"; };
@@ -29,27 +33,20 @@
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
-				C735DA002AFF7B4B001DCAA8 /* LaunchAtLogin in Frameworks */,
 				C702D9E127723D4100F27B93 /* Defaults in Frameworks */,
+				C702D9DB2772399800F27B93 /* LaunchAtLogin in Frameworks */,
+				C7CC6DCD2771BFA8002E2746 /* AXSwift in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
 /* End PBXFrameworksBuildPhase section */
 
 /* Begin PBXGroup section */
-		C7C52BC127EB8FC2006B2447 /* Frameworks */ = {
-			isa = PBXGroup;
-			children = (
-			);
-			name = Frameworks;
-			sourceTree = "<group>";
-		};
 		C7CC6DB02771B2D1002E2746 = {
 			isa = PBXGroup;
 			children = (
 				C7CC6DBB2771B2D1002E2746 /* YellowDot */,
 				C7CC6DBA2771B2D1002E2746 /* Products */,
-				C7C52BC127EB8FC2006B2447 /* Frameworks */,
 			);
 			sourceTree = "<group>";
 		};
@@ -66,10 +63,11 @@
 			children = (
 				C702D9D8277235FA00F27B93 /* Info.plist */,
 				C7CC6DBC2771B2D2002E2746 /* YellowDotApp.swift */,
+				C702D9D6277234AC00F27B93 /* StatusBarController.swift */,
+				C7CC6DBE2771B2D2002E2746 /* ContentView.swift */,
 				C7CC6DC02771B2D2002E2746 /* Assets.xcassets */,
 				C7CC6DC52771B2D2002E2746 /* YellowDot.entitlements */,
 				C7CC6DC22771B2D2002E2746 /* Preview Content */,
-				C7C0876C28E1D016005EA649 /* YellowDot-Bridging-Header.h */,
 			);
 			path = YellowDot;
 			sourceTree = "<group>";
@@ -92,6 +90,7 @@
 				C7CC6DB52771B2D1002E2746 /* Sources */,
 				C7CC6DB62771B2D1002E2746 /* Frameworks */,
 				C7CC6DB72771B2D1002E2746 /* Resources */,
+				C702D9DE27723BE900F27B93 /* Copy Launch At Login Helper */,
 			);
 			buildRules = (
 			);
@@ -99,8 +98,9 @@
 			);
 			name = YellowDot;
 			packageProductDependencies = (
+				C7CC6DCC2771BFA8002E2746 /* AXSwift */,
+				C702D9DA2772399800F27B93 /* LaunchAtLogin */,
 				C702D9E027723D4100F27B93 /* Defaults */,
-				C735D9FF2AFF7B4B001DCAA8 /* LaunchAtLogin */,
 			);
 			productName = YellowDot;
 			productReference = C7CC6DB92771B2D1002E2746 /* YellowDot.app */;
@@ -114,11 +114,10 @@
 			attributes = {
 				BuildIndependentTargetsInParallel = 1;
 				LastSwiftUpdateCheck = 1320;
-				LastUpgradeCheck = 1500;
+				LastUpgradeCheck = 1320;
 				TargetAttributes = {
 					C7CC6DB82771B2D1002E2746 = {
 						CreatedOnToolsVersion = 13.2;
-						LastSwiftMigration = 1410;
 					};
 				};
 			};
@@ -132,8 +131,9 @@
 			);
 			mainGroup = C7CC6DB02771B2D1002E2746;
 			packageReferences = (
+				C7CC6DCB2771BFA8002E2746 /* XCRemoteSwiftPackageReference "AXSwift" */,
+				C702D9D92772399800F27B93 /* XCRemoteSwiftPackageReference "LaunchAtLogin" */,
 				C702D9DF27723D4100F27B93 /* XCRemoteSwiftPackageReference "Defaults" */,
-				C735D9FC2AFF7A94001DCAA8 /* XCRemoteSwiftPackageReference "LaunchAtLogin-Modern" */,
 			);
 			productRefGroup = C7CC6DBA2771B2D1002E2746 /* Products */;
 			projectDirPath = "";
@@ -156,11 +156,34 @@
 		};
 /* End PBXResourcesBuildPhase section */
 
+/* Begin PBXShellScriptBuildPhase section */
+		C702D9DE27723BE900F27B93 /* Copy Launch At Login Helper */ = {
+			isa = PBXShellScriptBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			inputFileListPaths = (
+			);
+			inputPaths = (
+			);
+			name = "Copy Launch At Login Helper";
+			outputFileListPaths = (
+			);
+			outputPaths = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+			shellPath = /bin/sh;
+			shellScript = "\"${BUILT_PRODUCTS_DIR}/LaunchAtLogin_LaunchAtLogin.bundle/Contents/Resources/copy-helper-swiftpm.sh\"\n";
+		};
+/* End PBXShellScriptBuildPhase section */
+
 /* Begin PBXSourcesBuildPhase section */
 		C7CC6DB52771B2D1002E2746 /* Sources */ = {
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				C7CC6DBF2771B2D2002E2746 /* ContentView.swift in Sources */,
+				C702D9D7277234AC00F27B93 /* StatusBarController.swift in Sources */,
 				C7CC6DBD2771B2D2002E2746 /* YellowDotApp.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
@@ -172,7 +195,6 @@
 			isa = XCBuildConfiguration;
 			buildSettings = {
 				ALWAYS_SEARCH_USER_PATHS = NO;
-				ASSETCATALOG_COMPILER_GENERATE_SWIFT_ASSET_SYMBOL_EXTENSIONS = YES;
 				CLANG_ANALYZER_NONNULL = YES;
 				CLANG_ANALYZER_NUMBER_OBJECT_CONVERSION = YES_AGGRESSIVE;
 				CLANG_CXX_LANGUAGE_STANDARD = "gnu++17";
@@ -203,11 +225,9 @@
 				CLANG_WARN_UNREACHABLE_CODE = YES;
 				CLANG_WARN__DUPLICATE_METHOD_MATCH = YES;
 				COPY_PHASE_STRIP = NO;
-				DEAD_CODE_STRIPPING = YES;
 				DEBUG_INFORMATION_FORMAT = dwarf;
 				ENABLE_STRICT_OBJC_MSGSEND = YES;
 				ENABLE_TESTABILITY = YES;
-				ENABLE_USER_SCRIPT_SANDBOXING = YES;
 				GCC_C_LANGUAGE_STANDARD = gnu11;
 				GCC_DYNAMIC_NO_PIC = NO;
 				GCC_NO_COMMON_BLOCKS = YES;
@@ -236,7 +256,6 @@
 			isa = XCBuildConfiguration;
 			buildSettings = {
 				ALWAYS_SEARCH_USER_PATHS = NO;
-				ASSETCATALOG_COMPILER_GENERATE_SWIFT_ASSET_SYMBOL_EXTENSIONS = YES;
 				CLANG_ANALYZER_NONNULL = YES;
 				CLANG_ANALYZER_NUMBER_OBJECT_CONVERSION = YES_AGGRESSIVE;
 				CLANG_CXX_LANGUAGE_STANDARD = "gnu++17";
@@ -267,11 +286,9 @@
 				CLANG_WARN_UNREACHABLE_CODE = YES;
 				CLANG_WARN__DUPLICATE_METHOD_MATCH = YES;
 				COPY_PHASE_STRIP = NO;
-				DEAD_CODE_STRIPPING = YES;
 				DEBUG_INFORMATION_FORMAT = "dwarf-with-dsym";
 				ENABLE_NS_ASSERTIONS = NO;
 				ENABLE_STRICT_OBJC_MSGSEND = YES;
-				ENABLE_USER_SCRIPT_SANDBOXING = YES;
 				GCC_C_LANGUAGE_STANDARD = gnu11;
 				GCC_NO_COMMON_BLOCKS = YES;
 				GCC_WARN_64_TO_32_BIT_CONVERSION = YES;
@@ -294,34 +311,27 @@
 			buildSettings = {
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
-				CLANG_ENABLE_MODULES = YES;
 				CODE_SIGN_ENTITLEMENTS = YellowDot/YellowDot.entitlements;
 				CODE_SIGN_STYLE = Automatic;
 				COMBINE_HIDPI_IMAGES = YES;
 				CURRENT_PROJECT_VERSION = 1;
-				DEAD_CODE_STRIPPING = YES;
 				DEVELOPMENT_ASSET_PATHS = "\"YellowDot/Preview Content\"";
 				DEVELOPMENT_TEAM = RDDXV84A73;
 				ENABLE_HARDENED_RUNTIME = YES;
 				ENABLE_PREVIEWS = YES;
 				GENERATE_INFOPLIST_FILE = YES;
 				INFOPLIST_FILE = YellowDot/Info.plist;
-				INFOPLIST_KEY_CFBundleDisplayName = YellowDot;
-				INFOPLIST_KEY_LSApplicationCategoryType = "public.app-category.utilities";
 				INFOPLIST_KEY_NSHumanReadableCopyright = "";
-				LD_RUNPATH_SEARCH_PATHS = "$(inherited)";
-				MACOSX_DEPLOYMENT_TARGET = 13.0;
-				MARKETING_VERSION = 2.0;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/../Frameworks",
+				);
+				MACOSX_DEPLOYMENT_TARGET = 11.0;
+				MARKETING_VERSION = 1.2;
 				PRODUCT_BUNDLE_IDENTIFIER = com.lowtechguys.YellowDot;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SWIFT_EMIT_LOC_STRINGS = YES;
-				SWIFT_OBJC_BRIDGING_HEADER = "YellowDot/YellowDot-Bridging-Header.h";
-				SWIFT_OPTIMIZATION_LEVEL = "-Onone";
 				SWIFT_VERSION = 5.0;
-				SYSTEM_FRAMEWORK_SEARCH_PATHS = (
-					"$(inherited)",
-					"$(SYSTEM_LIBRARY_DIR)/PrivateFrameworks",
-				);
 			};
 			name = Debug;
 		};
@@ -330,33 +340,27 @@
 			buildSettings = {
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
-				CLANG_ENABLE_MODULES = YES;
 				CODE_SIGN_ENTITLEMENTS = YellowDot/YellowDot.entitlements;
 				CODE_SIGN_STYLE = Automatic;
 				COMBINE_HIDPI_IMAGES = YES;
 				CURRENT_PROJECT_VERSION = 1;
-				DEAD_CODE_STRIPPING = YES;
 				DEVELOPMENT_ASSET_PATHS = "\"YellowDot/Preview Content\"";
 				DEVELOPMENT_TEAM = RDDXV84A73;
 				ENABLE_HARDENED_RUNTIME = YES;
 				ENABLE_PREVIEWS = YES;
 				GENERATE_INFOPLIST_FILE = YES;
 				INFOPLIST_FILE = YellowDot/Info.plist;
-				INFOPLIST_KEY_CFBundleDisplayName = YellowDot;
-				INFOPLIST_KEY_LSApplicationCategoryType = "public.app-category.utilities";
 				INFOPLIST_KEY_NSHumanReadableCopyright = "";
-				LD_RUNPATH_SEARCH_PATHS = "$(inherited)";
-				MACOSX_DEPLOYMENT_TARGET = 13.0;
-				MARKETING_VERSION = 2.0;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/../Frameworks",
+				);
+				MACOSX_DEPLOYMENT_TARGET = 11.0;
+				MARKETING_VERSION = 1.2;
 				PRODUCT_BUNDLE_IDENTIFIER = com.lowtechguys.YellowDot;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SWIFT_EMIT_LOC_STRINGS = YES;
-				SWIFT_OBJC_BRIDGING_HEADER = "YellowDot/YellowDot-Bridging-Header.h";
 				SWIFT_VERSION = 5.0;
-				SYSTEM_FRAMEWORK_SEARCH_PATHS = (
-					"$(inherited)",
-					"$(SYSTEM_LIBRARY_DIR)/PrivateFrameworks",
-				);
 			};
 			name = Release;
 		};
@@ -384,17 +388,25 @@
 /* End XCConfigurationList section */
 
 /* Begin XCRemoteSwiftPackageReference section */
+		C702D9D92772399800F27B93 /* XCRemoteSwiftPackageReference "LaunchAtLogin" */ = {
+			isa = XCRemoteSwiftPackageReference;
+			repositoryURL = "https://github.com/sindresorhus/LaunchAtLogin";
+			requirement = {
+				branch = main;
+				kind = branch;
+			};
+		};
 		C702D9DF27723D4100F27B93 /* XCRemoteSwiftPackageReference "Defaults" */ = {
 			isa = XCRemoteSwiftPackageReference;
 			repositoryURL = "https://github.com/sindresorhus/Defaults";
 			requirement = {
-				kind = upToNextMajorVersion;
-				minimumVersion = 7.3.1;
+				branch = main;
+				kind = branch;
 			};
 		};
-		C735D9FC2AFF7A94001DCAA8 /* XCRemoteSwiftPackageReference "LaunchAtLogin-Modern" */ = {
+		C7CC6DCB2771BFA8002E2746 /* XCRemoteSwiftPackageReference "AXSwift" */ = {
 			isa = XCRemoteSwiftPackageReference;
-			repositoryURL = "https://github.com/sindresorhus/LaunchAtLogin-Modern";
+			repositoryURL = "https://github.com/tmandry/AXSwift";
 			requirement = {
 				branch = main;
 				kind = branch;
@@ -403,15 +415,20 @@
 /* End XCRemoteSwiftPackageReference section */
 
 /* Begin XCSwiftPackageProductDependency section */
+		C702D9DA2772399800F27B93 /* LaunchAtLogin */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = C702D9D92772399800F27B93 /* XCRemoteSwiftPackageReference "LaunchAtLogin" */;
+			productName = LaunchAtLogin;
+		};
 		C702D9E027723D4100F27B93 /* Defaults */ = {
 			isa = XCSwiftPackageProductDependency;
 			package = C702D9DF27723D4100F27B93 /* XCRemoteSwiftPackageReference "Defaults" */;
 			productName = Defaults;
 		};
-		C735D9FF2AFF7B4B001DCAA8 /* LaunchAtLogin */ = {
+		C7CC6DCC2771BFA8002E2746 /* AXSwift */ = {
 			isa = XCSwiftPackageProductDependency;
-			package = C735D9FC2AFF7A94001DCAA8 /* XCRemoteSwiftPackageReference "LaunchAtLogin-Modern" */;
-			productName = LaunchAtLogin;
+			package = C7CC6DCB2771BFA8002E2746 /* XCRemoteSwiftPackageReference "AXSwift" */;
+			productName = AXSwift;
 		};
 /* End XCSwiftPackageProductDependency section */
 	};

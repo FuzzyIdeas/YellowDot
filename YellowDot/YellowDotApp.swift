@@ -5,238 +5,257 @@
 //  Created by Alin Panaitiu on 21.12.2021.
 //
 
-import AXSwift
 import Combine
 import Defaults
+import LaunchAtLogin
 import SwiftUI
 
+let cid = CGSMainConnectionID()
+let WM = WindowManager()
+
 extension Defaults.Keys {
-    static let hideMenubarIcon = Key<Bool>("hideMenubarIcon", default: false)
-    static let paused = Key<Bool>("paused", default: false)
-    static let orange = Key<Bool>("orange", default: false)
-    static let faster = Key<Bool>("faster", default: false)
+    static let showMenubarIcon = Key<Bool>("showMenubarIcon", default: true)
+    static let dotColor = Key<DotColor>("dotColor", default: DotColor.black)
     static let launchCount = Key<Int>("launchCount", default: 0)
 }
 
-// MARK: - AXWindow
+struct WindowInfo {
+    var bounds: CGRect // "kCGWindowBounds"
+    var memoryUsage: Int // "kCGWindowMemoryUsage"
+    var alpha: Int // "kCGWindowAlpha"
+    var sharingState: Int // "kCGWindowSharingState"
+    var number: Int // "kCGWindowNumber"
+    var ownerName: String // "kCGWindowOwnerName"
+    var storeType: Int // "kCGWindowStoreType"
+    var layer: Int // "kCGWindowLayer"
+    var ownerPID: Int // "kCGWindowOwnerPID"
+    var isOnscreen: Int // "kCGWindowIsOnscreen"
+    var name: String // "kCGWindowName"
 
-struct AXWindow {
-    // MARK: Lifecycle
-
-    init?(from window: UIElement, runningApp: NSRunningApplication? = nil) {
-        guard let attrs = try? window.getMultipleAttributes(
-            .frame,
-            .fullScreen,
-            .title,
-            .position,
-            .main,
-            .minimized,
-            .size,
-            .identifier,
-            .subrole,
-            .role,
-            .focused
+    static func fromInfoDict(_ dict: [String: Any]) -> WindowInfo {
+        var rect = CGRect.zero
+        if let bounds = dict["kCGWindowBounds"] as? [String: CGFloat],
+           let x = bounds["X"], let y = bounds["Y"],
+           let width = bounds["Width"], let height = bounds["Height"]
+        {
+            rect = CGRect(x: x, y: y, width: width, height: height)
+        }
+        return WindowInfo(
+            bounds: rect,
+            memoryUsage: (dict["kCGWindowMemoryUsage"] as? Int) ?? 0,
+            alpha: (dict["kCGWindowAlpha"] as? Int) ?? 0,
+            sharingState: (dict["kCGWindowSharingState"] as? Int) ?? 0,
+            number: (dict["kCGWindowNumber"] as? Int) ?? 0,
+            ownerName: (dict["kCGWindowOwnerName"] as? String) ?? "",
+            storeType: (dict["kCGWindowStoreType"] as? Int) ?? 0,
+            layer: (dict["kCGWindowLayer"] as? Int) ?? 0,
+            ownerPID: (dict["kCGWindowOwnerPID"] as? Int) ?? 0,
+            isOnscreen: (dict["kCGWindowIsOnscreen"] as? Int) ?? 0,
+            name: (dict["kCGWindowName"] as? String) ?? ""
         )
-        else {
-            return nil
-        }
-        element = window
-
-        let frame = attrs[.frame] as? NSRect ?? NSRect()
-
-        self.frame = frame
-        fullScreen = attrs[.fullScreen] as? Bool ?? false
-        title = attrs[.title] as? String ?? ""
-        position = attrs[.position] as? NSPoint ?? NSPoint()
-        main = attrs[.main] as? Bool ?? false
-        minimized = attrs[.minimized] as? Bool ?? false
-        focused = attrs[.focused] as? Bool ?? false
-        size = attrs[.size] as? NSSize ?? NSSize()
-        identifier = attrs[.identifier] as? String ?? ""
-        subrole = attrs[.subrole] as? String ?? ""
-        role = attrs[.role] as? String ?? ""
-
-        self.runningApp = runningApp
-//        screen = NSScreen.screens.filter {
-//            guard let bounds = $0.bounds else { return false }
-//            return bounds.intersects(frame)
-//        }.max(by: { s1, s2 in
-//            guard let bounds1 = s1.bounds, let bounds2 = s2.bounds else { return false }
-//            return bounds1.intersectedArea(frame) < bounds2.intersectedArea(frame)
-//        })
-    }
-
-    // MARK: Internal
-
-    let element: UIElement
-    let frame: NSRect
-    let fullScreen: Bool
-    let title: String
-    let position: NSPoint
-    let main: Bool
-    let minimized: Bool
-    let focused: Bool
-    let size: NSSize
-    let identifier: String
-    let subrole: String
-    let role: String
-    let runningApp: NSRunningApplication?
-//    let screen: NSScreen?
-}
-
-func acquirePrivileges() {
-    let options = [
-        kAXTrustedCheckOptionPrompt.takeUnretainedValue() as String: true as CFBoolean,
-    ]
-    let accessEnabled = AXIsProcessTrustedWithOptions(options as CFDictionary)
-
-    guard !accessEnabled else { return }
-
-    Timer.scheduledTimer(withTimeInterval: 2, repeats: true) { timer in
-        if AXIsProcessTrusted() {
-            timer.invalidate()
-            AppDelegate.instance.statusBar?.showPopover(AppDelegate.instance)
-        }
     }
 }
 
-extension NSRunningApplication {
-    func windows() -> [AXWindow]? {
-        guard let app = Application(self) else { return nil }
-        do {
-            let wins = try app.windows()
-            return wins?.compactMap { AXWindow(from: $0, runningApp: self) }
-        } catch {
-            return nil
-        }
+func getWindows() -> [WindowInfo] {
+    let options = CGWindowListOption(arrayLiteral: .excludeDesktopElements, .optionOnScreenOnly)
+    let windowsListInfo = CGWindowListCopyWindowInfo(options, CGWindowID(0))
+    let infoList = windowsListInfo as! [[String: Any]]
+
+    let dicts = infoList.filter { w in
+        guard let name = w["kCGWindowName"] as? String else { return false }
+        return name == "StatusIndicator" || name == "Menubar"
     }
+
+    return dicts.map { WindowInfo.fromInfoDict($0) }
 }
 
-let OFF_SCREEN_POSITION = CGPoint(x: -999_999, y: -999_999)
-var oldDotPosition = OFF_SCREEN_POSITION
+@MainActor var windows: [WindowInfo] = []
 
-func moveDot(offScreen: Bool = true) {
-    var newPosition = offScreen ? OFF_SCREEN_POSITION : oldDotPosition
-    let controlCenters = NSRunningApplication.runningApplications(withBundleIdentifier: "com.apple.controlcenter")
-    let windows = controlCenters.compactMap { $0.windows() }.joined()
-    guard let positionValue = AXValueCreate(.cgPoint, &newPosition), !windows.isEmpty
-    else {
-        #if DEBUG
-            print("Error in finding dot:")
-            print("positionValue: \(AXValueCreate(.cgPoint, &newPosition))")
-            print(
-                "com.apple.controlcenter: \(NSRunningApplication.runningApplications(withBundleIdentifier: "com.apple.controlcenter").first)"
-            )
-            print(
-                "controlcenter windows: \(NSRunningApplication.runningApplications(withBundleIdentifier: "com.apple.controlcenter").first?.windows())"
-            )
-        #endif
+@MainActor func setDotBrightness(_ brightness: Float) {
+    let windows = windows.filter { $0.name == "StatusIndicator" }
+    guard !windows.isEmpty else {
         return
     }
 
-    for window in windows {
-        #if DEBUG
+    #if DEBUG
+        for window in windows {
             print(window)
-        #endif
-        if window.size.width == window.size.height {
-            if oldDotPosition == OFF_SCREEN_POSITION {
-                oldDotPosition = window.frame.origin
-            }
-            AXUIElementSetAttributeValue(window.element.element, kAXPositionAttribute as CFString, positionValue)
         }
+    #endif
+
+    var ids = windows.map(\.number)
+    var brightnesses = [Float](repeating: brightness, count: ids.count)
+    CGSSetWindowListBrightness(cid, &ids, &brightnesses, Int32(ids.count))
+}
+
+func pub<T: Equatable>(_ key: Defaults.Key<T>) -> Publishers.Filter<Publishers.RemoveDuplicates<Publishers.Drop<AnyPublisher<Defaults.KeyChange<T>, Never>>>> {
+    Defaults.publisher(key).dropFirst().removeDuplicates().filter { $0.oldValue != $0.newValue }
+}
+
+class WindowManager: ObservableObject {
+    @Published var windowToOpen: String? = nil
+
+    func open(_ window: String) {
+        windowToOpen = window
     }
 }
 
-// MARK: - AppDelegate
+func mainActor(_ action: @escaping @MainActor () -> Void) {
+    Task.init { await MainActor.run { action() }}
+}
 
 class AppDelegate: NSObject, NSApplicationDelegate {
     private(set) static var instance: AppDelegate!
 
-    var statusBar: StatusBarController?
-    let popover = NSPopover()
     var application = NSApplication.shared
     var observers: Set<AnyCancellable> = []
-
     var dotHider: Timer?
-
-    func initMenubar() {
-        let contentView = ContentView()
-        let view = HostingView(rootView: contentView)
-
-        popover.contentViewController = MainViewController()
-        popover.contentViewController?.view = view
-        popover.contentSize = NSSize(width: FULL_WINDOW_WIDTH, height: 300)
-        popover.animates = false
-
-        statusBar = StatusBarController(popover, visible: !Defaults[.hideMenubarIcon])
-        Defaults.publisher(.hideMenubarIcon).sink { [self] hidden in
-            statusBar?.statusItem.isVisible = !hidden.newValue
-            statusBar?.statusItem.button?.image = hidden.newValue ? nil : NSImage(named: "MenubarIcon")
-            if let window = popover.contentViewController?.view.window {
-                window.isMovableByWindowBackground = hidden.newValue
-                statusBar?.showPopover(self)
-            }
-        }.store(in: &observers)
-    }
+    var windowFetcher: Timer?
 
     func application(_ application: NSApplication, open urls: [URL]) {
-        statusBar?.showPopover(self)
+        WM.open("settings")
     }
 
     func applicationDidBecomeActive(_ notification: Notification) {
-        statusBar?.showPopover(self)
+        guard !firstAppActive else {
+            firstAppActive = false
+            return
+        }
+        WM.open("settings")
     }
 
-    func initDotHider(timeInterval: TimeInterval) {
+    @MainActor func initDotHider(timeInterval: TimeInterval) {
+        setDotBrightness(Defaults[.dotColor].brightness)
+
+        windowFetcher?.invalidate()
         dotHider?.invalidate()
+
+        windowFetcher = Timer.scheduledTimer(withTimeInterval: 5, repeats: true) { _ in
+            mainActor { windows = getWindows() }
+        }
         dotHider = Timer.scheduledTimer(withTimeInterval: timeInterval, repeats: true) { _ in
-            guard !Defaults[.paused] else { return }
-            moveDot(offScreen: true)
+            let color = Defaults[.dotColor]
+            guard color != .default else { return }
+            mainActor { setDotBrightness(color.brightness) }
         }
     }
 
     func applicationDidFinishLaunching(_ notification: Notification) {
         AppDelegate.instance = self
-        initMenubar()
         Defaults[.launchCount] += 1
-//        #if !DEBUG
-        acquirePrivileges()
-//        #endif
 
-        initDotHider(timeInterval: Defaults[.faster] ? 0.3 : 1)
+        initDotHider(timeInterval: 1)
 
-        Defaults.publisher(.paused).sink { paused in
-            moveDot(offScreen: !paused.newValue)
+        pub(.dotColor).sink { paused in
+            setDotBrightness(paused.newValue.brightness)
         }.store(in: &observers)
-        Defaults.publisher(.faster)
-            .debounce(for: .seconds(1), scheduler: RunLoop.main)
-            .sink { faster in
-                self.initDotHider(timeInterval: faster.newValue ? 0.3 : 1)
-            }.store(in: &observers)
+
+        NotificationCenter.default.addObserver(self, selector: #selector(windowWillClose), name: NSWindow.willCloseNotification, object: nil)
+        NotificationCenter.default.addObserver(self, selector: #selector(windowDidBecomeMainNotification), name: NSWindow.didBecomeMainNotification, object: nil)
+        NSApp.windows.first?.close()
+    }
+
+    func applicationShouldTerminateAfterLastWindowClosed(_ sender: NSApplication) -> Bool {
+        false
+    }
+
+    @objc func windowWillClose(_ notification: Notification) {
+        guard let window = notification.object as? NSWindow else { return }
+        if window.title == "YellowDot Settings" {
+            NSApp.setActivationPolicy(.accessory)
+        }
+    }
+
+    @objc func windowDidBecomeMainNotification(_ notification: Notification) {
+        guard let window = notification.object as? NSWindow else { return }
+        if window.title == "YellowDot Settings" {
+            NSApp.setActivationPolicy(.regular)
+        }
+    }
+
+    private var firstAppActive = true
+}
+
+enum DotColor: String, Defaults.Serializable {
+    case black
+    case `default`
+//    case adaptive
+    case white
+
+    @MainActor var brightness: Float {
+        switch self {
+        case .black:
+            -1.0
+        case .default:
+            0.0
+        case .white:
+            1.0
+//        case .adaptive:
+//            windows.contains(where: { $0.name == "Menubar" }) ? -1.0 : 1.0
+        }
     }
 }
 
-// MARK: - YellowDotApp
-
 @main
 struct YellowDotApp: App {
-    // MARK: Lifecycle
-
     init() {}
 
-    // MARK: Internal
+    @AppStorage("showMenubarIcon") var showMenubarIcon = Defaults[.showMenubarIcon]
+    @AppStorage("dotColor") var dotColor = Defaults[.dotColor]
 
-    @Default(.hideMenubarIcon) var hideMenubarIcon
-
+    @Environment(\.openWindow) var openWindow
+    @ObservedObject var wm = WM
     @NSApplicationDelegateAdaptor(AppDelegate.self) var appDelegate
 
+    var dotColorPicker: some View {
+        Picker("Dot color", selection: $dotColor) {
+            Text("Black").tag(DotColor.black)
+                .help("Makes the dot black.")
+            Text("Default").tag(DotColor.default)
+                .help("Disables any dot color changes")
+//            Text("Adaptive").tag(DotColor.adaptive)
+//                .help("Makes the dot black/white based on the color of the menubar icons.")
+            Text("White").tag(DotColor.white)
+                .help("Makes the dot white.")
+        }
+    }
+
     var body: some Scene {
-        Settings {
-            if hideMenubarIcon {
-                ContentView()
-            } else {
-                EmptyView()
+        Window("YellowDot Settings", id: "settings") {
+            VStack(alignment: .trailing) {
+                Form {
+                    Toggle("Show menubar icon", isOn: $showMenubarIcon)
+                    LaunchAtLogin.Toggle()
+                    dotColorPicker.pickerStyle(.segmented)
+                }.formStyle(.grouped)
+                Button("Quit") {
+                    NSApplication.shared.terminate(self)
+                }.padding()
             }
+        }
+        .defaultSize(width: 370, height: 280)
+        MenuBarExtra("YellowDot", systemImage: "circle.fill", isInserted: $showMenubarIcon) {
+            Toggle("Show menubar icon", isOn: $showMenubarIcon)
+            LaunchAtLogin.Toggle()
+            dotColorPicker
+            Divider()
+            Button("Quit") {
+                NSApplication.shared.terminate(self)
+            }
+        }
+        .menuBarExtraStyle(.menu)
+        .onChange(of: showMenubarIcon) { show in
+            if !show {
+                openWindow(id: "settings")
+                NSApp.activate(ignoringOtherApps: true)
+            } else {
+                NSApplication.shared.keyWindow?.close()
+            }
+        }
+        .onChange(of: wm.windowToOpen) { window in
+            guard let window else { return }
+            openWindow(id: window)
+            wm.windowToOpen = nil
         }
     }
 }

@@ -1,34 +1,23 @@
 {
-  "object": {
-    "pins": [
-      {
-        "package": "AXSwift",
-        "repositoryURL": "https://github.com/tmandry/AXSwift",
-        "state": {
-          "branch": "main",
-          "revision": "e18a18453d135ad45809a384ee5139e05ea52def",
-          "version": null
-        }
-      },
-      {
-        "package": "Defaults",
-        "repositoryURL": "https://github.com/sindresorhus/Defaults",
-        "state": {
-          "branch": "main",
-          "revision": "5b30f01e46d25f7b59e37d6d96b2030d6c96ac87",
-          "version": null
-        }
-      },
-      {
-        "package": "LaunchAtLogin",
-        "repositoryURL": "https://github.com/sindresorhus/LaunchAtLogin",
-        "state": {
-          "branch": "main",
-          "revision": "e8171b3e38a2816f579f58f3dac1522aa39efe41",
-          "version": null
-        }
+  "pins" : [
+    {
+      "identity" : "defaults",
+      "kind" : "remoteSourceControl",
+      "location" : "https://github.com/sindresorhus/Defaults",
+      "state" : {
+        "revision" : "3efef5a28ebdbbe922d4a2049493733ed14475a6",
+        "version" : "7.3.1"
       }
-    ]
-  },
-  "version": 1
+    },
+    {
+      "identity" : "launchatlogin-modern",
+      "kind" : "remoteSourceControl",
+      "location" : "https://github.com/sindresorhus/LaunchAtLogin-Modern",
+      "state" : {
+        "branch" : "main",
+        "revision" : "9c41991631605c8ccfe0347bbcb5c659169f2ec5"
+      }
+    }
+  ],
+  "version" : 2
 }
