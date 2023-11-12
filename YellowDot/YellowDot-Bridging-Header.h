@@ -8,4 +8,3 @@ typedef int        CGSValue;
 
 extern CGSConnection CGSMainConnectionID(void);
 extern OSStatus CGSSetWindowListBrightness(const CGSConnection cid, CGSWindow *wids, float *brightness, int count);
-
