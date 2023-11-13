@@ -2,7 +2,7 @@
 
 ###### Hide the macOS yellow recording dot in the corner of your screen
 
-## v2 (after macOS 12.2)
+## v2 (after macOS 13)
 
 *[available here](https://github.com/FuzzyIdeas/YellowDot/releases/tag/v2)*
 
