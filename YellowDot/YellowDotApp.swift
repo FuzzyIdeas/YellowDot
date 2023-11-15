@@ -15,7 +15,8 @@ let WM = WindowManager()
 
 extension Defaults.Keys {
     static let showMenubarIcon = Key<Bool>("showMenubarIcon", default: true)
-    static let dotColor = Key<DotColor>("dotColor", default: DotColor.black)
+    static let dimMenubarIndicators = Key<Bool>("dimMenubarIndicators", default: true)
+    static let dotColor = Key<DotColor>("dotColor", default: DotColor.adaptive)
     static let launchCount = Key<Int>("launchCount", default: 0)
 }
 
@@ -31,6 +32,8 @@ struct WindowInfo {
     var ownerPID: Int // "kCGWindowOwnerPID"
     var isOnscreen: Int // "kCGWindowIsOnscreen"
     var name: String // "kCGWindowName"
+    var screen: String? // "display uuid"
+    var space: Int? // "space number"
 
     static func fromInfoDict(_ dict: [String: Any]) -> WindowInfo {
         var rect = CGRect.zero
@@ -40,18 +43,23 @@ struct WindowInfo {
         {
             rect = CGRect(x: x, y: y, width: width, height: height)
         }
+
+        let id = (dict["kCGWindowNumber"] as? Int) ?? 0
+        let screen = CGSCopyManagedDisplayForWindow(cid, id)?.takeRetainedValue() as String?
         return WindowInfo(
             bounds: rect,
             memoryUsage: (dict["kCGWindowMemoryUsage"] as? Int) ?? 0,
             alpha: (dict["kCGWindowAlpha"] as? Int) ?? 0,
             sharingState: (dict["kCGWindowSharingState"] as? Int) ?? 0,
-            number: (dict["kCGWindowNumber"] as? Int) ?? 0,
+            number: id,
             ownerName: (dict["kCGWindowOwnerName"] as? String) ?? "",
             storeType: (dict["kCGWindowStoreType"] as? Int) ?? 0,
             layer: (dict["kCGWindowLayer"] as? Int) ?? 0,
             ownerPID: (dict["kCGWindowOwnerPID"] as? Int) ?? 0,
             isOnscreen: (dict["kCGWindowIsOnscreen"] as? Int) ?? 0,
-            name: (dict["kCGWindowName"] as? String) ?? ""
+            name: (dict["kCGWindowName"] as? String) ?? "",
+            screen: screen,
+            space: CGSManagedDisplayGetCurrentSpace(cid, screen as CFString?)
         )
     }
 }
@@ -62,8 +70,13 @@ func getWindows() -> [WindowInfo] {
     let infoList = windowsListInfo as! [[String: Any]]
 
     let dicts = infoList.filter { w in
-        guard let name = w["kCGWindowName"] as? String else { return false }
-        return name == "StatusIndicator" || name == "Menubar"
+        if let name = w["kCGWindowName"] as? String {
+            return name == "StatusIndicator" || name == "Menubar"
+        }
+        if let ownerName = w["kCGWindowOwnerName"] as? String, let number = w["kCGWindowNumber"] as? Int {
+            return ownerName == "Control Centre" && number > 100
+        }
+        return false
     }
 
     return dicts.map { WindowInfo.fromInfoDict($0) }
@@ -71,8 +84,8 @@ func getWindows() -> [WindowInfo] {
 
 @MainActor var windows: [WindowInfo] = []
 
-@MainActor func setDotBrightness(_ brightness: Float) {
-    let windows = windows.filter { $0.name == "StatusIndicator" }
+@MainActor func setDotBrightness(color: DotColor, windowName: String? = nil, windowOwnerName: String? = nil) {
+    let windows = windows.filter { $0.name == windowName || $0.ownerName == windowOwnerName }
     guard !windows.isEmpty else {
         return
     }
@@ -83,9 +96,11 @@ func getWindows() -> [WindowInfo] {
         }
     #endif
 
-    var ids = windows.map(\.number)
-    var brightnesses = [Float](repeating: brightness, count: ids.count)
-    CGSSetWindowListBrightness(cid, &ids, &brightnesses, Int32(ids.count))
+    for window in windows {
+        var ids = [window.number]
+        var brightnesses: [Float] = [color.brightness(window: window)]
+        CGSSetWindowListBrightness(cid, &ids, &brightnesses, Int32(1))
+    }
 }
 
 func pub<T: Equatable>(_ key: Defaults.Key<T>) -> Publishers.Filter<Publishers.RemoveDuplicates<Publishers.Drop<AnyPublisher<Defaults.KeyChange<T>, Never>>>> {
@@ -125,7 +140,10 @@ class AppDelegate: NSObject, NSApplicationDelegate {
     }
 
     @MainActor func initDotHider(timeInterval: TimeInterval) {
-        setDotBrightness(Defaults[.dotColor].brightness)
+        setDotBrightness(color: Defaults[.dotColor], windowName: "StatusIndicator")
+        if Defaults[.dimMenubarIndicators] {
+            setDotBrightness(color: .dim, windowOwnerName: "Control Centre")
+        }
 
         windowFetcher?.invalidate()
         dotHider?.invalidate()
@@ -136,7 +154,12 @@ class AppDelegate: NSObject, NSApplicationDelegate {
         dotHider = Timer.scheduledTimer(withTimeInterval: timeInterval, repeats: true) { _ in
             let color = Defaults[.dotColor]
             guard color != .default else { return }
-            mainActor { setDotBrightness(color.brightness) }
+            mainActor {
+                setDotBrightness(color: color, windowName: "StatusIndicator")
+                if Defaults[.dimMenubarIndicators] {
+                    setDotBrightness(color: .dim, windowOwnerName: "Control Centre")
+                }
+            }
         }
     }
 
@@ -146,8 +169,11 @@ class AppDelegate: NSObject, NSApplicationDelegate {
 
         initDotHider(timeInterval: 1)
 
-        pub(.dotColor).sink { paused in
-            setDotBrightness(paused.newValue.brightness)
+        pub(.dotColor).sink { dotColor in
+            setDotBrightness(color: dotColor.newValue, windowName: "StatusIndicator")
+        }.store(in: &observers)
+        pub(.dimMenubarIndicators).sink { dim in
+            setDotBrightness(color: dim.newValue ? .dim : .default, windowOwnerName: "Control Centre")
         }.store(in: &observers)
 
         NotificationCenter.default.addObserver(self, selector: #selector(windowWillClose), name: NSWindow.willCloseNotification, object: nil)
@@ -176,13 +202,47 @@ class AppDelegate: NSObject, NSApplicationDelegate {
     private var firstAppActive = true
 }
 
+extension NSAppearance {
+    var isDark: Bool { name == .vibrantDark || name == .darkAqua }
+    var isLight: Bool { !isDark }
+    static var dark: NSAppearance? { NSAppearance(named: .darkAqua) }
+    static var light: NSAppearance? { NSAppearance(named: .aqua) }
+    static var vibrantDark: NSAppearance? { NSAppearance(named: .vibrantDark) }
+    static var vibrantLight: NSAppearance? { NSAppearance(named: .vibrantLight) }
+}
+
+func statusBarAppearance(screen: String?) -> NSAppearance? {
+    guard let screen else {
+        return NSApp.windows.first(where: { $0.className == "NSStatusBarWindow" })?.effectiveAppearance ?? .light
+    }
+
+    return NSApp.windows
+        .first(where: { $0.className == "NSStatusBarWindow" && $0.screen?.uuid == screen })?
+        .effectiveAppearance ?? .light
+}
+
+extension NSScreen {
+    var id: CGDirectDisplayID? {
+        guard let id = deviceDescription[NSDeviceDescriptionKey("NSScreenNumber")] as? NSNumber
+        else { return nil }
+        return CGDirectDisplayID(id.uint32Value)
+    }
+    var uuid: String {
+        guard let id, let uuid = CGDisplayCreateUUIDFromDisplayID(id) else { return "" }
+        let uuidValue = uuid.takeRetainedValue()
+        let uuidString = CFUUIDCreateString(kCFAllocatorDefault, uuidValue) as String
+        return uuidString
+    }
+}
+
 enum DotColor: String, Defaults.Serializable {
     case black
     case `default`
-//    case adaptive
+    case adaptive
     case white
+    case dim
 
-    @MainActor var brightness: Float {
+    @MainActor func brightness(window: WindowInfo) -> Float {
         switch self {
         case .black:
             -1.0
@@ -190,8 +250,10 @@ enum DotColor: String, Defaults.Serializable {
             0.0
         case .white:
             1.0
-//        case .adaptive:
-//            windows.contains(where: { $0.name == "Menubar" }) ? -1.0 : 1.0
+        case .dim:
+            -0.7
+        case .adaptive:
+            (!CGSIsMenuBarVisibleOnSpace(cid, window.space ?? 1) || (statusBarAppearance(screen: window.screen)?.isLight ?? true)) ? -1.0 : 1.0
         }
     }
 }
@@ -202,6 +264,7 @@ struct YellowDotApp: App {
 
     @AppStorage("showMenubarIcon") var showMenubarIcon = Defaults[.showMenubarIcon]
     @AppStorage("dotColor") var dotColor = Defaults[.dotColor]
+    @AppStorage("dimMenubarIndicators") var dimMenubarIndicators = Defaults[.dimMenubarIndicators]
 
     @Environment(\.openWindow) var openWindow
     @ObservedObject var wm = WM
@@ -213,8 +276,10 @@ struct YellowDotApp: App {
                 .help("Makes the dot black.")
             Text("Default").tag(DotColor.default)
                 .help("Disables any dot color changes")
-//            Text("Adaptive").tag(DotColor.adaptive)
-//                .help("Makes the dot black/white based on the color of the menubar icons.")
+            Text("Adaptive").tag(DotColor.adaptive)
+                .help("Makes the dot black/white based on the color of the menubar icons.")
+            Text("Dim").tag(DotColor.dim)
+                .help("Makes the dot 70% darker, keeping a bit of its color.")
             Text("White").tag(DotColor.white)
                 .help("Makes the dot white.")
         }
@@ -226,6 +291,7 @@ struct YellowDotApp: App {
                 Form {
                     Toggle("Show menubar icon", isOn: $showMenubarIcon)
                     LaunchAtLogin.Toggle()
+                    Toggle("Dim orange/purple menubar indicators", isOn: $dimMenubarIndicators)
                     dotColorPicker.pickerStyle(.segmented)
                 }.formStyle(.grouped)
                 Button("Quit") {
@@ -233,10 +299,11 @@ struct YellowDotApp: App {
                 }.padding()
             }
         }
-        .defaultSize(width: 370, height: 280)
+        .defaultSize(width: 540, height: 340)
         MenuBarExtra("YellowDot", systemImage: "circle.fill", isInserted: $showMenubarIcon) {
             Toggle("Show menubar icon", isOn: $showMenubarIcon)
             LaunchAtLogin.Toggle()
+            Toggle("Dim orange/purple menubar indicators", isOn: $dimMenubarIndicators)
             dotColorPicker
             Divider()
             Button("Quit") {
