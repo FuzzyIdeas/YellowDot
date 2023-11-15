@@ -4,7 +4,7 @@
 
 ## v2 (after macOS 13)
 
-*[available here](https://github.com/FuzzyIdeas/YellowDot/releases/tag/v2)*
+*[available here](https://github.com/FuzzyIdeas/YellowDot/releases)*
 
 Hides the recording or location indicator dot by making it full black or white.
 
