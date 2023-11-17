@@ -73,8 +73,8 @@ func getWindows() -> [WindowInfo] {
         if let name = w["kCGWindowName"] as? String {
             return name == "StatusIndicator" || name == "Menubar"
         }
-        if let ownerName = w["kCGWindowOwnerName"] as? String, let number = w["kCGWindowNumber"] as? Int {
-            return ownerName == "Control Centre" && number > 100
+        if let ownerName = w["kCGWindowOwnerName"] as? String, let number = w["kCGWindowNumber"] as? Int, let bounds = w["kCGWindowBounds"] as? [String: CGFloat], let y = bounds["Y"] {
+            return ownerName == "Control Centre" && number > 100 && y == 0
         }
         return false
     }
