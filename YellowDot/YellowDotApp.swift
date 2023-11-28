@@ -64,6 +64,43 @@ struct WindowInfo {
     }
 }
 
+let CONTROL_CENTER_NAMES: Set<String> = [
+    "Control Center",
+    "Control Centre",
+    "مركز التحكم",
+    "Centre de control",
+    "Ovládací centrum",
+    "Kontrolcenter",
+    "Kontrollzentrum",
+    "Κέντρο ελέγχου",
+    "Centro de control",
+    "Ohjauskeskus",
+    "Centre de contrôle",
+    "מרכז הבקרה",
+    "कंट्रोल सेंटर",
+    "Kontrolni centar",
+    "Vezérlőközpont",
+    "Pusat Kontrol",
+    "Centro di Controllo",
+    "コントロールセンター",
+    "제어 센터",
+    "Pusat Kawalan",
+    "Bedieningspaneel",
+    "Kontrollsenter",
+    "Centrum sterowania",
+    "Central de Controle",
+    "Central de controlo",
+    "Centru de control",
+    "Пункт управления",
+    "Ovládacie centrum",
+    "Kontrollcenter",
+    "ศูนย์ควบคุม",
+    "Denetim Merkezi",
+    "Центр керування",
+    "Trung tâm điều khiển",
+    "控制中心",
+]
+
 func getWindows() -> [WindowInfo] {
     let options = CGWindowListOption(arrayLiteral: .excludeDesktopElements, .optionOnScreenOnly)
     let windowsListInfo = CGWindowListCopyWindowInfo(options, CGWindowID(0))
@@ -74,7 +111,7 @@ func getWindows() -> [WindowInfo] {
             return name == "StatusIndicator" || name == "Menubar"
         }
         if let ownerName = w["kCGWindowOwnerName"] as? String, let number = w["kCGWindowNumber"] as? Int, let bounds = w["kCGWindowBounds"] as? [String: CGFloat], let y = bounds["Y"] {
-            return ownerName == "Control Centre" && number > 100 && y == 0
+            return CONTROL_CENTER_NAMES.contains(ownerName) && number > 100 && y == 0
         }
         return false
     }
@@ -84,10 +121,13 @@ func getWindows() -> [WindowInfo] {
 
 @MainActor var windows: [WindowInfo] = []
 
-@MainActor func setDotBrightness(color: DotColor, windowName: String? = nil, windowOwnerName: String? = nil) {
-    let windows = windows.filter { $0.name == windowName || $0.ownerName == windowOwnerName }
+@MainActor func setDotBrightness(color: DotColor, windowName: String? = nil, windowOwnerNames: Set<String>? = nil) {
+    var windows = windows.filter { $0.name == windowName || (windowOwnerNames?.contains($0.ownerName) ?? false) }
     guard !windows.isEmpty else {
         return
+    }
+    if let windowOwnerNames, windowOwnerNames.contains("Control Center") {
+        windows = [windows.max(by: { $0.number <= $1.number })!]
     }
 
     #if DEBUG
@@ -142,7 +182,7 @@ class AppDelegate: NSObject, NSApplicationDelegate {
     @MainActor func initDotHider(timeInterval: TimeInterval) {
         setDotBrightness(color: Defaults[.dotColor], windowName: "StatusIndicator")
         if Defaults[.dimMenubarIndicators] {
-            setDotBrightness(color: .dim, windowOwnerName: "Control Centre")
+            setDotBrightness(color: .dim, windowOwnerNames: CONTROL_CENTER_NAMES)
         }
 
         windowFetcher?.invalidate()
@@ -157,7 +197,7 @@ class AppDelegate: NSObject, NSApplicationDelegate {
             mainActor {
                 setDotBrightness(color: color, windowName: "StatusIndicator")
                 if Defaults[.dimMenubarIndicators] {
-                    setDotBrightness(color: .dim, windowOwnerName: "Control Centre")
+                    setDotBrightness(color: .dim, windowOwnerNames: CONTROL_CENTER_NAMES)
                 }
             }
         }
@@ -173,7 +213,7 @@ class AppDelegate: NSObject, NSApplicationDelegate {
             setDotBrightness(color: dotColor.newValue, windowName: "StatusIndicator")
         }.store(in: &observers)
         pub(.dimMenubarIndicators).sink { dim in
-            setDotBrightness(color: dim.newValue ? .dim : .default, windowOwnerName: "Control Centre")
+            setDotBrightness(color: dim.newValue ? .dim : .default, windowOwnerNames: CONTROL_CENTER_NAMES)
         }.store(in: &observers)
 
         NotificationCenter.default.addObserver(self, selector: #selector(windowWillClose), name: NSWindow.willCloseNotification, object: nil)
