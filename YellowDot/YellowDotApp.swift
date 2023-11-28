@@ -35,6 +35,14 @@ struct WindowInfo {
     var screen: String? // "display uuid"
     var space: Int? // "space number"
 
+    var isControlCenterColoredIcon: Bool {
+        COLORED_MENUBAR_ICON_NAMES.contains(name)
+            && CONTROL_CENTER_NAMES.contains(ownerName)
+    }
+    var isDot: Bool {
+        name == "StatusIndicator"
+    }
+
     static func fromInfoDict(_ dict: [String: Any]) -> WindowInfo {
         var rect = CGRect.zero
         if let bounds = dict["kCGWindowBounds"] as? [String: CGFloat],
@@ -101,19 +109,65 @@ let CONTROL_CENTER_NAMES: Set<String> = [
     "控制中心",
 ]
 
+let COLORED_MENUBAR_ICON_NAMES: Set<String> = [
+    "AudioVideoModule",
+    "عناصر التحكم في الصوت والفيديو",
+    "Controls d’àudio i de vídeo",
+    "Ovládání zvuku a videa",
+    "Lyd- og videoindstillinger",
+    "Audio- und Videosteuerung",
+    "Στοιχεία ελέγχου ήχου και βίντεο",
+    "Audio and Video Controls",
+    "Audio and Video Controls",
+    "Audio and Video Controls",
+    "Controles de audio y vídeo",
+    "Controles de audio y video",
+    "Ääni- ja videosäätimet",
+    "Commandes audio et vidéo",
+    "Contrôles audio et vidéo",
+    "פקדי שמע ווידאו",
+    "ऑडियो और वीडियो कंट्रोल",
+    "Audio i video kontrole",
+    "Hang- és videóvezérlők",
+    "Kontrol Audio dan Video",
+    "Controlli audio e video",
+    "オーディオとビデオのコントロール",
+    "오디오 및 비디오 제어",
+    "Kawalan Audio dan Video",
+    "Audio- en videoregelaars",
+    "Lyd- og videokontroller",
+    "Narzędzia audio i wideo",
+    "Controles de Áudio e Vídeo",
+    "Controlos de áudio e vídeo",
+    "Comenzi audio și video",
+    "Элементы управления аудио и видео",
+    "Ovládanie audia a videa",
+    "Ljud- och videoreglage",
+    "ตัวควบคุมเสียงและวิดีโอ",
+    "Ses ile Video Denetimleri",
+    "Елементи керування звуком і відео",
+    "Điều khiển âm thanh và video",
+    "音频和视频控制",
+    "音訊和影片控制項目",
+    "音訊和影片控制項目",
+]
+
 func getWindows() -> [WindowInfo] {
     let options = CGWindowListOption(arrayLiteral: .excludeDesktopElements, .optionOnScreenOnly)
     let windowsListInfo = CGWindowListCopyWindowInfo(options, CGWindowID(0))
     let infoList = windowsListInfo as! [[String: Any]]
 
     let dicts = infoList.filter { w in
-        if let name = w["kCGWindowName"] as? String {
-            return name == "StatusIndicator" || name == "Menubar"
+        guard let name = w["kCGWindowName"] as? String else {
+            return false
         }
-        if let ownerName = w["kCGWindowOwnerName"] as? String, let number = w["kCGWindowNumber"] as? Int, let bounds = w["kCGWindowBounds"] as? [String: CGFloat], let y = bounds["Y"] {
-            return CONTROL_CENTER_NAMES.contains(ownerName) && number > 100 && y == 0
-        }
-        return false
+
+        return name == "StatusIndicator"
+            || name == "Menubar"
+            || (
+                COLORED_MENUBAR_ICON_NAMES.contains(name)
+                    && CONTROL_CENTER_NAMES.contains((w["kCGWindowOwnerName"] as? String) ?? "")
+            )
     }
 
     return dicts.map { WindowInfo.fromInfoDict($0) }
@@ -121,13 +175,10 @@ func getWindows() -> [WindowInfo] {
 
 @MainActor var windows: [WindowInfo] = []
 
-@MainActor func setDotBrightness(color: DotColor, windowName: String? = nil, windowOwnerNames: Set<String>? = nil) {
-    var windows = windows.filter { $0.name == windowName || (windowOwnerNames?.contains($0.ownerName) ?? false) }
+@MainActor func setWindowBrightness(color: DotColor, predicate: (WindowInfo) -> Bool) {
+    let windows = windows.filter(predicate)
     guard !windows.isEmpty else {
         return
-    }
-    if let windowOwnerNames, windowOwnerNames.contains("Control Center") {
-        windows = [windows.max(by: { $0.number <= $1.number })!]
     }
 
     #if DEBUG
@@ -180,9 +231,9 @@ class AppDelegate: NSObject, NSApplicationDelegate {
     }
 
     @MainActor func initDotHider(timeInterval: TimeInterval) {
-        setDotBrightness(color: Defaults[.dotColor], windowName: "StatusIndicator")
+        setWindowBrightness(color: Defaults[.dotColor]) { $0.isDot }
         if Defaults[.dimMenubarIndicators] {
-            setDotBrightness(color: .dim, windowOwnerNames: CONTROL_CENTER_NAMES)
+            setWindowBrightness(color: .dim) { $0.isControlCenterColoredIcon }
         }
 
         windowFetcher?.invalidate()
@@ -195,9 +246,9 @@ class AppDelegate: NSObject, NSApplicationDelegate {
             let color = Defaults[.dotColor]
             guard color != .default else { return }
             mainActor {
-                setDotBrightness(color: color, windowName: "StatusIndicator")
+                setWindowBrightness(color: color) { $0.isDot }
                 if Defaults[.dimMenubarIndicators] {
-                    setDotBrightness(color: .dim, windowOwnerNames: CONTROL_CENTER_NAMES)
+                    setWindowBrightness(color: .dim) { $0.isControlCenterColoredIcon }
                 }
             }
         }
@@ -207,13 +258,29 @@ class AppDelegate: NSObject, NSApplicationDelegate {
         AppDelegate.instance = self
         Defaults[.launchCount] += 1
 
+        if !CGPreflightScreenCaptureAccess(), Defaults[.dimMenubarIndicators] {
+            let alert = NSAlert()
+            alert.messageText = "Enable menubar icon dimming?"
+            alert.informativeText = "To dim the orange/purple/green menubar icons for microphone, screencapture and FaceTime, the app needs to ask for Screen Recording permissions."
+            alert.addButton(withTitle: "Yes")
+            alert.addButton(withTitle: "No")
+            alert.alertStyle = .informational
+            let response = alert.runModal()
+            if response == .alertFirstButtonReturn {
+                CGRequestScreenCaptureAccess()
+            } else {
+                Defaults[.dimMenubarIndicators] = false
+            }
+        }
+
         initDotHider(timeInterval: 1)
 
         pub(.dotColor).sink { dotColor in
-            setDotBrightness(color: dotColor.newValue, windowName: "StatusIndicator")
+            setWindowBrightness(color: dotColor.newValue) { $0.isDot }
         }.store(in: &observers)
         pub(.dimMenubarIndicators).sink { dim in
-            setDotBrightness(color: dim.newValue ? .dim : .default, windowOwnerNames: CONTROL_CENTER_NAMES)
+            CGRequestScreenCaptureAccess()
+            setWindowBrightness(color: dim.newValue ? .dim : .default) { $0.isControlCenterColoredIcon }
         }.store(in: &observers)
 
         NotificationCenter.default.addObserver(self, selector: #selector(windowWillClose), name: NSWindow.willCloseNotification, object: nil)
