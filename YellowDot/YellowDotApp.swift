@@ -369,7 +369,7 @@ struct ColorPicker: View {
     let dimHelp: String
     let whiteHelp: String
     let selection: Binding<DotColor>
-    
+
     var body: some View {
         Picker(title, selection: selection) {
             Text("Black").tag(DotColor.black)
@@ -399,28 +399,30 @@ struct YellowDotApp: App {
     @NSApplicationDelegateAdaptor(AppDelegate.self) var appDelegate
 
     var dotColorPicker: some View {
-        ColorPicker(title: "Dot color", blackHelp: "Makes the dot black.", defaultHelp: "Disables any dot color changes", adaptiveHelp: "Makes the dot black/white based on the color of the menubar icons.", dimHelp: "Makes the dot 70% darker, keeping a bit of its color.", whiteHelp: "Makes the dot white.", selection: $dotColor)
+        ColorPicker(
+            title: "Dot color",
+            blackHelp: "Makes the dot black.",
+            defaultHelp: "Disables any dot color changes",
+            adaptiveHelp: "Makes the dot black/white based on the color of the menubar icons.",
+            dimHelp: "Makes the dot 70% darker, keeping a bit of its color.",
+            whiteHelp: "Makes the dot white.",
+            selection: $dotColor
+        )
     }
-    
+
     var indicatorColorPicker: some View {
-        ColorPicker(title: "Menubar Indicator color", blackHelp: "Makes the indicator black.", defaultHelp: "Disables any indicator color changes", adaptiveHelp: "Makes the indicator black/white based on the color of the menubar icons.", dimHelp: "Makes the indicator 70% darker, keeping a bit of its color.", whiteHelp: "Makes the indicator white.", selection: $indicatorColor)
+        ColorPicker(
+            title: "Menubar Indicator color",
+            blackHelp: "Makes the indicator black.",
+            defaultHelp: "Disables any indicator color changes",
+            adaptiveHelp: "Makes the indicator black/white based on the color of the menubar icons.",
+            dimHelp: "Makes the indicator 70% darker, keeping a bit of its color.",
+            whiteHelp: "Makes the indicator white.",
+            selection: $indicatorColor
+        )
     }
 
     var body: some Scene {
-        Window("YellowDot Settings", id: "settings") {
-            VStack(alignment: .trailing) {
-                Form {
-                    Toggle("Show menubar icon", isOn: $showMenubarIcon)
-                    LaunchAtLogin.Toggle()
-                    indicatorColorPicker.pickerStyle(.segmented)
-                    dotColorPicker.pickerStyle(.segmented)
-                }.formStyle(.grouped)
-                Button("Quit") {
-                    NSApplication.shared.terminate(self)
-                }.padding()
-            }
-        }
-        .defaultSize(width: 540, height: 340)
         MenuBarExtra("YellowDot", systemImage: "circle.fill", isInserted: $showMenubarIcon) {
             Toggle("Show menubar icon", isOn: $showMenubarIcon)
             LaunchAtLogin.Toggle()
@@ -436,8 +438,6 @@ struct YellowDotApp: App {
             if !show {
                 openWindow(id: "settings")
                 NSApp.activate(ignoringOtherApps: true)
-            } else {
-                NSApplication.shared.keyWindow?.close()
             }
         }
         .onChange(of: wm.windowToOpen) { window in
@@ -445,5 +445,20 @@ struct YellowDotApp: App {
             openWindow(id: window)
             wm.windowToOpen = nil
         }
+        Window("YellowDot Settings", id: "settings") {
+            VStack(alignment: .trailing) {
+                Form {
+                    Toggle("Show menubar icon", isOn: $showMenubarIcon)
+                    LaunchAtLogin.Toggle()
+                    indicatorColorPicker.pickerStyle(.segmented)
+                    dotColorPicker.pickerStyle(.segmented)
+                }.formStyle(.grouped)
+                Button("Quit") {
+                    NSApplication.shared.terminate(self)
+                }.padding()
+            }
+            .frame(minWidth: 580, minHeight: 270)
+        }
+        .defaultSize(width: 580, height: 270)
     }
 }
