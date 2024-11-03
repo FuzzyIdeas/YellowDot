@@ -15,7 +15,7 @@ let WM = WindowManager()
 
 extension Defaults.Keys {
     static let showMenubarIcon = Key<Bool>("showMenubarIcon", default: true)
-    static let dimMenubarIndicators = Key<Bool>("dimMenubarIndicators", default: true)
+    static let indicatorColor = Key<DotColor>("indicatorColor", default: DotColor.dim)
     static let dotColor = Key<DotColor>("dotColor", default: DotColor.adaptive)
     static let launchCount = Key<Int>("launchCount", default: 0)
 }
@@ -232,9 +232,7 @@ class AppDelegate: NSObject, NSApplicationDelegate {
 
     @MainActor func initDotHider(timeInterval: TimeInterval) {
         setWindowBrightness(color: Defaults[.dotColor]) { $0.isDot }
-        if Defaults[.dimMenubarIndicators] {
-            setWindowBrightness(color: .dim) { $0.isControlCenterColoredIcon }
-        }
+        setWindowBrightness(color: Defaults[.indicatorColor]) { $0.isControlCenterColoredIcon }
 
         windowFetcher?.invalidate()
         dotHider?.invalidate()
@@ -243,13 +241,12 @@ class AppDelegate: NSObject, NSApplicationDelegate {
             mainActor { windows = getWindows() }
         }
         dotHider = Timer.scheduledTimer(withTimeInterval: timeInterval, repeats: true) { _ in
-            let color = Defaults[.dotColor]
-            guard color != .default else { return }
+            let dotColor = Defaults[.dotColor]
+            guard dotColor != .default else { return }
+            let indicatorColor = Defaults[.indicatorColor]
             mainActor {
-                setWindowBrightness(color: color) { $0.isDot }
-                if Defaults[.dimMenubarIndicators] {
-                    setWindowBrightness(color: .dim) { $0.isControlCenterColoredIcon }
-                }
+                setWindowBrightness(color: dotColor) { $0.isDot }
+                setWindowBrightness(color: indicatorColor) { $0.isControlCenterColoredIcon }
             }
         }
     }
@@ -258,7 +255,7 @@ class AppDelegate: NSObject, NSApplicationDelegate {
         AppDelegate.instance = self
         Defaults[.launchCount] += 1
 
-        if !CGPreflightScreenCaptureAccess(), Defaults[.dimMenubarIndicators] {
+        if !CGPreflightScreenCaptureAccess(), Defaults[.indicatorColor] != .default {
             let alert = NSAlert()
             alert.messageText = "Enable menubar icon dimming?"
             alert.informativeText = "To dim the orange/purple/green menubar icons for microphone, screencapture and FaceTime, the app needs to ask for Screen Recording permissions."
@@ -269,7 +266,7 @@ class AppDelegate: NSObject, NSApplicationDelegate {
             if response == .alertFirstButtonReturn {
                 CGRequestScreenCaptureAccess()
             } else {
-                Defaults[.dimMenubarIndicators] = false
+                Defaults[.indicatorColor] = .default
             }
         }
 
@@ -278,9 +275,9 @@ class AppDelegate: NSObject, NSApplicationDelegate {
         pub(.dotColor).sink { dotColor in
             setWindowBrightness(color: dotColor.newValue) { $0.isDot }
         }.store(in: &observers)
-        pub(.dimMenubarIndicators).sink { dim in
+        pub(.indicatorColor).sink { indicatorColor in
             CGRequestScreenCaptureAccess()
-            setWindowBrightness(color: dim.newValue ? .dim : .default) { $0.isControlCenterColoredIcon }
+            setWindowBrightness(color: indicatorColor.newValue) { $0.isControlCenterColoredIcon }
         }.store(in: &observers)
 
         NotificationCenter.default.addObserver(self, selector: #selector(windowWillClose), name: NSWindow.willCloseNotification, object: nil)
@@ -364,31 +361,49 @@ enum DotColor: String, Defaults.Serializable {
     }
 }
 
+struct ColorPicker: View {
+    let title: String
+    let blackHelp: String
+    let defaultHelp: String
+    let adaptiveHelp: String
+    let dimHelp: String
+    let whiteHelp: String
+    let selection: Binding<DotColor>
+    
+    var body: some View {
+        Picker(title, selection: selection) {
+            Text("Black").tag(DotColor.black)
+                .help(blackHelp)
+            Text("Default").tag(DotColor.default)
+                .help(defaultHelp)
+            Text("Adaptive").tag(DotColor.adaptive)
+                .help(adaptiveHelp)
+            Text("Dim").tag(DotColor.dim)
+                .help(dimHelp)
+            Text("White").tag(DotColor.white)
+                .help(whiteHelp)
+        }
+    }
+}
+
 @main
 struct YellowDotApp: App {
     init() {}
 
     @AppStorage("showMenubarIcon") var showMenubarIcon = Defaults[.showMenubarIcon]
     @AppStorage("dotColor") var dotColor = Defaults[.dotColor]
-    @AppStorage("dimMenubarIndicators") var dimMenubarIndicators = Defaults[.dimMenubarIndicators]
+    @AppStorage("indicatorColor") var indicatorColor = Defaults[.indicatorColor]
 
     @Environment(\.openWindow) var openWindow
     @ObservedObject var wm = WM
     @NSApplicationDelegateAdaptor(AppDelegate.self) var appDelegate
 
     var dotColorPicker: some View {
-        Picker("Dot color", selection: $dotColor) {
-            Text("Black").tag(DotColor.black)
-                .help("Makes the dot black.")
-            Text("Default").tag(DotColor.default)
-                .help("Disables any dot color changes")
-            Text("Adaptive").tag(DotColor.adaptive)
-                .help("Makes the dot black/white based on the color of the menubar icons.")
-            Text("Dim").tag(DotColor.dim)
-                .help("Makes the dot 70% darker, keeping a bit of its color.")
-            Text("White").tag(DotColor.white)
-                .help("Makes the dot white.")
-        }
+        ColorPicker(title: "Dot color", blackHelp: "Makes the dot black.", defaultHelp: "Disables any dot color changes", adaptiveHelp: "Makes the dot black/white based on the color of the menubar icons.", dimHelp: "Makes the dot 70% darker, keeping a bit of its color.", whiteHelp: "Makes the dot white.", selection: $dotColor)
+    }
+    
+    var indicatorColorPicker: some View {
+        ColorPicker(title: "Menubar Indicator color", blackHelp: "Makes the indicator black.", defaultHelp: "Disables any indicator color changes", adaptiveHelp: "Makes the indicator black/white based on the color of the menubar icons.", dimHelp: "Makes the indicator 70% darker, keeping a bit of its color.", whiteHelp: "Makes the indicator white.", selection: $indicatorColor)
     }
 
     var body: some Scene {
@@ -397,7 +412,7 @@ struct YellowDotApp: App {
                 Form {
                     Toggle("Show menubar icon", isOn: $showMenubarIcon)
                     LaunchAtLogin.Toggle()
-                    Toggle("Dim orange/purple menubar indicators", isOn: $dimMenubarIndicators)
+                    indicatorColorPicker.pickerStyle(.segmented)
                     dotColorPicker.pickerStyle(.segmented)
                 }.formStyle(.grouped)
                 Button("Quit") {
@@ -409,7 +424,7 @@ struct YellowDotApp: App {
         MenuBarExtra("YellowDot", systemImage: "circle.fill", isInserted: $showMenubarIcon) {
             Toggle("Show menubar icon", isOn: $showMenubarIcon)
             LaunchAtLogin.Toggle()
-            Toggle("Dim orange/purple menubar indicators", isOn: $dimMenubarIndicators)
+            indicatorColorPicker
             dotColorPicker
             Divider()
             Button("Quit") {
