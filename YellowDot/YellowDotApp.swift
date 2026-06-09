@@ -153,7 +153,9 @@ let COLORED_MENUBAR_ICON_NAMES: Set<String> = [
 ]
 
 func getWindows() -> [WindowInfo] {
-    let options = CGWindowListOption(arrayLiteral: .excludeDesktopElements, .optionOnScreenOnly)
+    let options = CGWindowListOption(
+        arrayLiteral: .excludeDesktopElements
+    )
     let windowsListInfo = CGWindowListCopyWindowInfo(options, CGWindowID(0))
     let infoList = windowsListInfo as! [[String: Any]]
 
@@ -173,24 +175,36 @@ func getWindows() -> [WindowInfo] {
     return dicts.map { WindowInfo.fromInfoDict($0) }
 }
 
-@MainActor var windows: [WindowInfo] = []
 
-@MainActor func setWindowBrightness(color: DotColor, predicate: (WindowInfo) -> Bool) {
-    let windows = windows.filter(predicate)
+@MainActor
+func setWindowBrightness(
+    color: DotColor,
+    predicate: (WindowInfo) -> Bool
+) {
+    let windows = getWindows().filter(predicate)
+
     guard !windows.isEmpty else {
         return
     }
 
     #if DEBUG
-        for window in windows {
-            print(window)
-        }
+    for window in windows {
+        print(window)
+    }
     #endif
 
     for window in windows {
         var ids = [window.number]
-        var brightnesses: [Float] = [color.brightness(window: window)]
-        CGSSetWindowListBrightness(cid, &ids, &brightnesses, Int32(1))
+        var brightnesses: [Float] = [
+            color.brightness(window: window)
+        ]
+
+        CGSSetWindowListBrightness(
+            cid,
+            &ids,
+            &brightnesses,
+            Int32(1)
+        )
     }
 }
 
@@ -216,26 +230,14 @@ class AppDelegate: NSObject, NSApplicationDelegate {
     var application = NSApplication.shared
     var observers: Set<AnyCancellable> = []
     var dotHider: Timer?
-    var windowFetcher: Timer?
-
-    var didBecomeActiveAtLeastOnce = false
 
     func application(_ application: NSApplication, open urls: [URL]) {
-        guard didBecomeActiveAtLeastOnce else {
-            return
-        }
-        guard !Defaults[.showMenubarIcon] else {
-            return
-        }
         WM.open("settings")
     }
 
     func applicationDidBecomeActive(_ notification: Notification) {
-        guard didBecomeActiveAtLeastOnce else {
-            didBecomeActiveAtLeastOnce = true
-            return
-        }
-        guard !Defaults[.showMenubarIcon] else {
+        guard !firstAppActive else {
+            firstAppActive = false
             return
         }
         WM.open("settings")
@@ -245,19 +247,24 @@ class AppDelegate: NSObject, NSApplicationDelegate {
         setWindowBrightness(color: Defaults[.dotColor]) { $0.isDot }
         setWindowBrightness(color: Defaults[.indicatorColor]) { $0.isControlCenterColoredIcon }
 
-        windowFetcher?.invalidate()
-        dotHider?.invalidate()
 
-        windowFetcher = Timer.scheduledTimer(withTimeInterval: 5, repeats: true) { _ in
-            mainActor { windows = getWindows() }
-        }
         dotHider = Timer.scheduledTimer(withTimeInterval: timeInterval, repeats: true) { _ in
             let dotColor = Defaults[.dotColor]
-            guard dotColor != .default else { return }
             let indicatorColor = Defaults[.indicatorColor]
+
             mainActor {
-                setWindowBrightness(color: dotColor) { $0.isDot }
-                setWindowBrightness(color: indicatorColor) { $0.isControlCenterColoredIcon }
+
+                if dotColor != .default {
+                    setWindowBrightness(color: dotColor) {
+                        $0.isDot
+                    }
+                }
+
+                if indicatorColor != .default {
+                    setWindowBrightness(color: indicatorColor) {
+                        $0.isControlCenterColoredIcon
+                    }
+                }
             }
         }
     }
@@ -265,8 +272,6 @@ class AppDelegate: NSObject, NSApplicationDelegate {
     func applicationDidFinishLaunching(_ notification: Notification) {
         AppDelegate.instance = self
         Defaults[.launchCount] += 1
-
-        NSApp.windows.first { $0.title.contains("Settings") }?.close()
 
         if !CGPreflightScreenCaptureAccess(), Defaults[.indicatorColor] != .default {
             let alert = NSAlert()
@@ -315,6 +320,7 @@ class AppDelegate: NSObject, NSApplicationDelegate {
         }
     }
 
+    private var firstAppActive = true
 }
 
 extension NSAppearance {
@@ -447,7 +453,7 @@ struct YellowDotApp: App {
         }
         .menuBarExtraStyle(.menu)
         .onChange(of: showMenubarIcon) { show in
-            if !show, appDelegate.didBecomeActiveAtLeastOnce {
+            if !show {
                 openWindow(id: "settings")
                 NSApp.activate(ignoringOtherApps: true)
             }
