@@ -15,8 +15,8 @@
       "kind" : "remoteSourceControl",
       "location" : "https://github.com/FuzzyIdeas/LaunchAtLogin",
       "state" : {
-        "revision" : "b122d2d4c2e999eefe2cea2181a3b5b3da045a3d",
-        "version" : "1.0.0"
+        "revision" : "ab5d44b3aaaed48eee9794039a904d06cfb4806b",
+        "version" : "1.1.0"
       }
     }
   ],
