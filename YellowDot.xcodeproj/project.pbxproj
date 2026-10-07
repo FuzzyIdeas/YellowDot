@@ -133,7 +133,7 @@
 			mainGroup = C7CC6DB02771B2D1002E2746;
 			packageReferences = (
 				C702D9DF27723D4100F27B93 /* XCRemoteSwiftPackageReference "Defaults" */,
-				C735D9FC2AFF7A94001DCAA8 /* XCRemoteSwiftPackageReference "LaunchAtLogin-Modern" */,
+				C735D9FC2AFF7A94001DCAA8 /* XCRemoteSwiftPackageReference "LaunchAtLogin" */,
 			);
 			productRefGroup = C7CC6DBA2771B2D1002E2746 /* Products */;
 			projectDirPath = "";
@@ -398,9 +398,9 @@
 				minimumVersion = 7.3.1;
 			};
 		};
-		C735D9FC2AFF7A94001DCAA8 /* XCRemoteSwiftPackageReference "LaunchAtLogin-Modern" */ = {
+		C735D9FC2AFF7A94001DCAA8 /* XCRemoteSwiftPackageReference "LaunchAtLogin" */ = {
 			isa = XCRemoteSwiftPackageReference;
-			repositoryURL = "https://github.com/sindresorhus/LaunchAtLogin-Modern";
+			repositoryURL = "https://github.com/FuzzyIdeas/LaunchAtLogin";
 			requirement = {
 				kind = upToNextMajorVersion;
 				minimumVersion = 1.0.0;
@@ -416,7 +416,7 @@
 		};
 		C735D9FF2AFF7B4B001DCAA8 /* LaunchAtLogin */ = {
 			isa = XCSwiftPackageProductDependency;
-			package = C735D9FC2AFF7A94001DCAA8 /* XCRemoteSwiftPackageReference "LaunchAtLogin-Modern" */;
+			package = C735D9FC2AFF7A94001DCAA8 /* XCRemoteSwiftPackageReference "LaunchAtLogin" */;
 			productName = LaunchAtLogin;
 		};
 /* End XCSwiftPackageProductDependency section */

@@ -1,5 +1,5 @@
 {
-  "originHash" : "60fc9b372fe8c504e56c41f50bb21097a9311923eac2e660f35d1fa8d6419460",
+  "originHash" : "4e56e67427f723ffc3ac5b05fa4c02c9c224c33109dc88d746baf60b6c8ebe0c",
   "pins" : [
     {
       "identity" : "defaults",
@@ -11,12 +11,12 @@
       }
     },
     {
-      "identity" : "launchatlogin-modern",
+      "identity" : "launchatlogin",
       "kind" : "remoteSourceControl",
-      "location" : "https://github.com/sindresorhus/LaunchAtLogin-Modern",
+      "location" : "https://github.com/FuzzyIdeas/LaunchAtLogin",
       "state" : {
-        "revision" : "a04ec1c363be3627734f6dad757d82f5d4fa8fcc",
-        "version" : "1.1.0"
+        "revision" : "b122d2d4c2e999eefe2cea2181a3b5b3da045a3d",
+        "version" : "1.0.0"
       }
     }
   ],
